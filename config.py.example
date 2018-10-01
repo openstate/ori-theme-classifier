@@ -11,6 +11,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config(object):
     SECRET_KEY = False
+    SERVER_NAME = 'classificeer.openraadsinformatie.nl'
+    PREFERRED_URL_SCHEME = 'https'
+    FORCE_HOST_FOR_REDIRECTS = 'classificeer.openraadsinformatie.nl'
     USE_SESSION_FOR_NEXT = True
 
     SQLALCHEMY_DATABASE_URI = (

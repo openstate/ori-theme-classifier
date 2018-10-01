@@ -15,5 +15,5 @@ services:
   mysql:
     restart: "no"
 networks:
-  mlo:
+  otc:
   nginx-load-balancer:

@@ -1,0 +1,45 @@
+version: "3.1"
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile-nginx
+    volumes:
+      - ./nginx/:/etc/nginx/
+      - ../app/static/:/usr/share/nginx/html/static/
+      - ../files/:/usr/share/nginx/html/files/
+    networks:
+      - nginx-load-balancer
+      - otc
+    restart: always
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-app
+    volumes:
+      - ../:/opt/otc
+    networks:
+      - otc
+    restart: always
+  mysql:
+    image: mysql:5.7.21
+    # This root password will be overwritten with the password used in
+    # the backup that will be restored from a .sql file in the
+    # docker-entrypoint-initdb.d directory.
+    environment:
+      - MYSQL_DATABASE=otc
+      - MYSQL_ROOT_PASSWORD=<DB_PASSWORD>
+    networks:
+      - otc
+    volumes:
+      - otc-mysql-volume:/var/lib/mysql
+      - "./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d"
+      - "./conf.d:/etc/mysql/conf.d"
+    restart: always
+networks:
+  otc:
+  nginx-load-balancer:
+    external:
+      name: docker_nginx-load-balancer
+volumes:
+  otc-mysql-volume:

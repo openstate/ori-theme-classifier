@@ -2,14 +2,16 @@ from app import app, db
 
 
 class Feedback(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    organisation = db.Column(db.String(16), index=True)
-    year = db.Column(db.Integer, index=True)
-    vendor_country = db.Column(db.String(64), index=True)
-    vendor_name = db.Column(db.String(128), index=True)
-    amount = db.Column(db.Numeric(13, 2))
-    description = db.Column(db.Text)
-    country_code = db.Column(db.String(3), index=True)
+    id = db.Column(db.String(500), primary_key=True, index=True)
+    bestuurEnBeleid = db.Column(db.Integer)
+    veiligheid = db.Column(db.Integer)
+    onderwijs = db.Column(db.Integer)
+    economie = db.Column(db.Integer)
+    verkeer = db.Column(db.Integer)
+    sociaal = db.Column(db.Integer)
+    volkshuisvesting = db.Column(db.Integer)
+    gezondheid = db.Column(db.Integer)
+    cultuur = db.Column(db.Integer)
 
 
 # Create the tables above if they don't exist

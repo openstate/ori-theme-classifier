@@ -25,15 +25,27 @@ def classificeer():
 
 
 @app.route("/feedback", methods=['POST'])
-def feedback():
+def geefFeedback():
     data = request.get_json(force=True)
-    # hier code van feedback, data is op dit moment een dict
+    item = Feedback.query.get(data["id"])
+    if item:
+        print("check")
+        item.bestuurEnBeleid += data["bestuurEnBeleid"]
+        # etc.
+    else:
+        feedback = Feedback(
+            id=data["id"],
+            #etc.
+            )
+        db.session.add(feedback)
+    db.session.commit()
     return ("", 204)
 
 
 @app.route("/hertrain", methods=['GET'])
 def hertrain():
     # Overschrijven van modellen hier ook, dus hertrainen en opnieuw inladen
+    listOfFeedbackModels = Feedback.query.all()
     return ("", 204)
 
 

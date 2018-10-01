@@ -17,7 +17,6 @@ Classifier that can be trained to a model to classify Open Raadsinformatie docum
    - Make sure to extract the latest MySQL backup in `docker/docker-entrypoint-initdb.d` if you want to import it: `gunzip latest-mysqldump-daily.sql.gz`
    - `cd docker`
    - `sudo docker-compose up -d`
-   - Compile the assets, see the section below
    - Set up backups
       - Copy `docker/backup.sh.example` to `docker/backup.sh` and edit it
          - Fill in the same `<DB_PASSWORD>` as used in `docker/docker-compose.yml`
@@ -30,7 +29,6 @@ Classifier that can be trained to a model to classify Open Raadsinformatie docum
    - Make sure to extract the latest MySQL backup in `docker/docker-entrypoint-initdb.d` if you want to import it: `gunzip latest-mysqldump-daily.sql.gz`
    - `cd docker`
    - `docker-compose -f docker-compose.yml -f docker-compose-dev.yml up -d`
-   - Compile the assets, see the section below
    - Retrieve the IP address of the nginx container `docker inspect otc_nginx_1` and add it to your hosts file `/etc/hosts`: `<IP_address> open-multilaterals.org`
 - Useful commands
    - Remove and rebuild everything (this also removes the MySQL volume containing all records (this is required if you want to load the .sql files from `docker/docker-entrypoint-initdb.d` again))

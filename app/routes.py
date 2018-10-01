@@ -12,9 +12,29 @@ from app.models import Feedback
 from datetime import datetime
 
 
-@app.route("/", methods=['GET', 'POST'])
-def index():
-    return jsonify(1)
+# Hier inladen modellen
+#model1 = model 
+
+
+@app.route("/classificeer", methods=['POST'])
+def classificeer():
+    data = request.get_json(force=True)
+    # hier code van classifieer, data is op dit moment een dict
+
+    return jsonify(data)
+
+
+@app.route("/feedback", methods=['POST'])
+def feedback():
+    data = request.get_json(force=True)
+    # hier code van feedback, data is op dit moment een dict
+    return ("", 204)
+
+
+@app.route("/hertrain", methods=['GET'])
+def hertrain():
+    # Overschrijven van modellen hier ook, dus hertrainen en opnieuw inladen
+    return ("", 204)
 
 
 if __name__ == "__main__":

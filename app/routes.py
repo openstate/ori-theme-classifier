@@ -1,6 +1,8 @@
 import csv
 import os
 import sys
+import time
+import subprocess
 
 # Inladen van libraries
 import pickle
@@ -9,10 +11,13 @@ import json
 import numpy as np
 import re
 import requests
+import time
+import random
 from sklearn.linear_model import SGDClassifier, LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import f1_score
 from stop_words import get_stop_words
+from nltk.stem.snowball import SnowballStemmer
 
 from flask import (
     request, redirect, url_for, flash, Markup, jsonify
@@ -23,15 +28,20 @@ from app.models import Feedback
 
 from datetime import datetime
 
+from os import listdir
+from os.path import isfile, join
+
+
+modelBestanden = ["bestuurOndersteuning","veiligheid","verkeerVervoerWaterstaat","economie","onderwijs","sportCultuurRecreatie","sociaalDomein","volksgezondheidMilieu","volkshuisvestingRuimtelijkeOrdening"] 
 
 # Inladen van modellen die nodig zijn
-tfidfModel = pickle.load(open("tfidf.pickle", "rb")) 
+if os.path.exists("models/latest/tfidf.pickle"):
+    tfidfModel = pickle.load(open("models/latest/tfidf.pickle", "rb")) 
 
-# Er zijn 9 aparte modellen voor de veschillende thema's. Dit stuk laadt deze modellen in en zet ze in een lijst zodat je erover heen kan loopen.
-modelBestanden = ["bestuurOndersteuning","veiligheid","verkeerVervoerWaterstaat","economie","onderwijs","sportCultuurRecreatie","sociaalDomein","volksgezondheidMilieu","volkshuisvestingRuimtelijkeOrdening"] 
-classificatieModellen = []
-for bestand in modelBestanden:
-    classificatieModellen.append(pickle.load(open("models/"+bestand+ ".pickle", "rb")))
+    # Er zijn 9 aparte modellen voor de veschillende thema's. Dit stuk laadt deze modellen in en zet ze in een lijst zodat je erover heen kan loopen.
+    classificatieModellen = []
+    for bestand in modelBestanden:
+        classificatieModellen.append(pickle.load(open("models/latest/"+bestand+ ".pickle", "rb")))
 
 
 def preprocess(text):
@@ -47,6 +57,8 @@ def preprocess(text):
     stopwords = get_stop_words("dutch") #Laa
     text = ' '.join([word for word in text.split() if word.lower() not in stopwords]) # Verwijder stopwoorden
     text = ' '.join([word for word in text.split() if len(word)>1]) #remove 1 letter words
+    stemmer = SnowballStemmer("dutch")
+    text = stemmer.stem(text)
     return text
 
 def getUnderlyingDocs(data):
@@ -67,11 +79,16 @@ def getUnderlyingDocs(data):
 def addLabels(data):
     ### INPUT: Lijst van dicts met IDs en teksten
     ### OUTPUT: Dict met als key de IDs van documenten en als value de voorspelwaarde van de modellen. 
+
     finalDict = {}
     for doc in data:
         newDict = {}
+        length = len(doc["tekst"].split())
         for clf, naam in zip(classificatieModellen, modelBestanden):
-           newDict[naam] = clf.predict_proba(doc["matrix"])[0,0]
+            if length > 75:
+                newDict[naam] = clf.predict_proba(doc["matrix"])[0,0]
+            else:
+                newDict[naam] = 1
         finalDict[doc["id"]] = newDict
     return finalDict
 
@@ -79,6 +96,9 @@ def addLabels(data):
 def classificeer():
     ### INPUT: Dict vanuit de API met een agendapunt, met daarin mogelijk meerdere onderliggende documenten
     ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema. 
+    if not tfidfModel or not classificatieModellen:
+        return ("Geen modellen geladen, roep reload aan?", 500)
+
     data = request.get_json(force=True) # Dict direct uit de API als INPUT
     data = getUnderlyingDocs(data) # Haalt uit deze dict onderliggende documenten, en zet elk document als dict in een lijst met daarin het ID en de tekst
     for i in range(len(data)):
@@ -121,57 +141,23 @@ def geefFeedback():
     return ("", 204)
 
 
-@app.route("/hertrain", methods=['GET'])
-def hertrain():
+@app.route("/reload", methods=['GET'])
+def reload():
     ### INPUT: Niets
     ### OUTPUT: Een Overzicht van de F1-scores per thema van de nieuw gemaakte modellen 
-    
-    df = pd.DataFrame()
-    listOfFeedbackModels = Feedback.query.all() # Vraag alle documenten op waarmee je kan hertrainen
-    oldID = "temp" # Variabele om mee te checken of je een nieuwe ORI-API call moet maken
+    if not os.path.exists("models/latest/tfidf.pickle"):
+        return jsonify("models do not yet exist, run een hertrain?",501)
 
-    for item in listOfFeedbackModels:
-        docID = item.id.split("-",1)
-        if docID[0] is not oldID:
-            jsonDoc = requests.get("http://api.openraadsinformatie.nl/v0/combined_index/events/"+docID[0]).json()
-            oldID = docID[0] # Zo kan je checken of het ID het zelfde blijft bij volgende documenten
-        if len(docID) is 1: # Dit betekent dat het niet een bijlage is
-            tekst = preprocess(jsonDoc["name"] + " " + jsonDoc["description"])
-        else:
-            if "sources" in jsonDoc.keys():
-                for underlyingDoc in jsonDoc["sources"]:
-                    if underlyingDoc["url"] == docID[1]: # Komen ze overeen, dan refereert dit document met de ID
-                        tekst = preprocess(underlyingDoc["description"])
-                        break
+    # Inladen van modellen die nodig zijn
+    tfidfModelTemp = pickle.load(open("models/latest/tfidf.pickle", "rb")) 
 
-        if len(tekst.split()) > 100: # Dit een check op dat documenten wel lang genoeg moeten zijn
-            df = df.append(pd.DataFrame([[item.id, tekst, item.bestuurOndersteuning,item.veiligheid,item.verkeerVervoerWaterstaat,item.economie,item.onderwijs,item.sportCultuurRecreatie,item.sociaalDomein,item.volksgezondheidMilieu,item.volkshuisvestingRuimtelijkeOrdening]], 
-                columns=["id","tekst","bestuurOndersteuning","veiligheid","verkeerVervoerWaterstaat","economie","onderwijs","sportCultuurRecreatie","sociaalDomein","volksgezondheidMilieu","volkshuisvestingRuimtelijkeOrdening"]))
-    
-    df = df.sample(frac=1).reset_index(drop=True)
-    tfidfModel = TfidfVectorizer(max_df=0.4,min_df=0.001)
-    x = tfidfModel.fit_transform(df["tekst"])
-
-    # Sla de nieuwe TFIDF op
-    pickle.dump(tfidfModel, open("tfidf.pickle", "wb"))
-
-    f1scores = []
-    classificatieModellen = []
+    # Er zijn 9 aparte modellen voor de veschillende thema's. Dit stuk laadt deze modellen in en zet ze in een lijst zodat je erover heen kan loopen.
+    classificatieModellenTemp = []
     for bestand in modelBestanden:
-        y = df[bestand]
-        y= y.where(y < 1, 1)
-        y= y.where(y >= 1, 0)
-        model = LogisticRegression(C= 10, penalty= 'l2', solver= 'liblinear',dual=False,max_iter=250).fit(x[:round(0.8*len(y))], y[:round(0.8*len(y))])
-        classificatieModellen.append(model)
-        
-        # F1-scores berekenen van de nieuwe modellen
-        prediction = model.predict_proba(x[round(0.8*len(y)):])[:,0]
-        f1scores.append(round(f1_score(y[round(0.8*len(y)):], prediction<0.6),2))
-        
-        #Sla de nieuwe modellen op
-        pickle.dump(model, open("models/"+bestand+ ".pickle", "wb"))
-        
-    return jsonify(str(f1scores))
+        classificatieModellenTemp.append(pickle.load(open("models/latest/"+bestand+ ".pickle", "rb")))
+    tfidfModel = tfidfModelTemp
+    classificatieModellen = classificatieModellenTemp
+    return jsonify("reloading gelukt!!!")
 
 
 if __name__ == "__main__":

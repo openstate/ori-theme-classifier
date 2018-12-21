@@ -79,7 +79,6 @@ for item in listOfFeedbackModels: # Loop over alle ids waarop getraind moet word
 		jsonDoc = requests.get("http://api.openraadsinformatie.nl/v0/combined_index/events/"+docID[0]).json() #Vraag het document op bijpassend bij de id
 		oldID = docID[0] # Zo kan je checken of het ID het zelfde blijft bij volgende documenten
 
-	print("hier ook geweest")
 	if len(docID) is 1: # Check of je een van de bijlages moet hebben of 
 		if "description" in jsonDoc.keys(): # Dit is nodig omdat de IDs van ORI niet uniek zijn.
 			tekst = preprocess(jsonDoc["name"] + " " + jsonDoc["description"]) # Vraag de relevante velden op en preprocess ze.

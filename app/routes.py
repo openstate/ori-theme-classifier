@@ -43,6 +43,12 @@ if os.path.exists("models/latest/tfidf.pickle"):
     for bestand in modelBestanden:
         classificatieModellen.append(pickle.load(open("models/latest/"+bestand+ ".pickle", "rb")))
 
+classificatieLabels = {}
+labels_path = "models/latest/labels.json"
+if os.path.exists(labels_path):
+    print("Found labels, loading them now")
+    with open(labels_path, 'r') as in_file:
+        classificatieLabels = json.load(in_file)
 
 def preprocess(text):
     # INPUT: een string vanuit de API, vaak met html-tags, stopwoorden etc.
@@ -85,10 +91,11 @@ def addLabels(data):
         newDict = {}
         length = len(doc["tekst"].split())
         for clf, naam in zip(classificatieModellen, modelBestanden):
+            leesbaar = classificatieLabels[naam]
             if length > 75:
-                newDict[naam] = clf.predict_proba(doc["matrix"])[0,0]
+                newDict[leesbaar] = clf.predict_proba(doc["matrix"])[0,0]
             else:
-                newDict[naam] = 1
+                newDict[leesbaar] = 1
         finalDict[doc["id"]] = newDict
     return finalDict
 

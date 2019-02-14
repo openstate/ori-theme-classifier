@@ -32,11 +32,11 @@ from os import listdir
 from os.path import isfile, join
 
 
-modelBestanden = ["bestuurOndersteuning","veiligheid","verkeerVervoerWaterstaat","economie","onderwijs","sportCultuurRecreatie","sociaalDomein","volksgezondheidMilieu","volkshuisvestingRuimtelijkeOrdening"] 
+modelBestanden = ["bestuurOndersteuning","veiligheid","verkeerVervoerWaterstaat","economie","onderwijs","sportCultuurRecreatie","sociaalDomein","volksgezondheidMilieu","volkshuisvestingRuimtelijkeOrdening"]
 
 # Inladen van modellen die nodig zijn
 if os.path.exists("models/latest/tfidf.pickle"):
-    tfidfModel = pickle.load(open("models/latest/tfidf.pickle", "rb")) 
+    tfidfModel = pickle.load(open("models/latest/tfidf.pickle", "rb"))
 
     # Er zijn 9 aparte modellen voor de veschillende thema's. Dit stuk laadt deze modellen in en zet ze in een lijst zodat je erover heen kan loopen.
     classificatieModellen = []
@@ -64,11 +64,11 @@ def preprocess(text):
 def getUnderlyingDocs(data):
     ### INPUT: data, JSON-file vanuit ORI-API zonder aangegeven thema's met daarin mogelijk onderliggende documenten;
     ### OUTPUT: listOfDocs, per onderliggend document een dict met een ID en een string van de inhoud van het document;
-    docID = data["id"]
+    docID = data["ori_identifier"]
     text = data["name"] # Begin van de stringtekst waar de analyse overheen gaat
-    if "description" in data.keys():
-        text += " " + data["description"]
-    listOfDocs = [{"id":docID, "tekst":text}] # Dit is niet een onderliggend document, maar de titel en de omschrijving van het agendapunt 
+    if "text" in data.keys():
+        text += " " + data["text"]
+    listOfDocs = [{"id":docID, "tekst":text}] # Dit is niet een onderliggend document, maar de titel en de omschrijving van het agendapunt
 
     if "sources" in data.keys(): # Check of er onderliggende documenten zijn
         for doc in data["sources"]: # Loop over de onderliggende documenten
@@ -78,7 +78,7 @@ def getUnderlyingDocs(data):
 
 def addLabels(data):
     ### INPUT: Lijst van dicts met IDs en teksten
-    ### OUTPUT: Dict met als key de IDs van documenten en als value de voorspelwaarde van de modellen. 
+    ### OUTPUT: Dict met als key de IDs van documenten en als value de voorspelwaarde van de modellen.
 
     finalDict = {}
     for doc in data:
@@ -95,7 +95,7 @@ def addLabels(data):
 @app.route("/classificeer", methods=['POST'])
 def classificeer():
     ### INPUT: Dict vanuit de API met een agendapunt, met daarin mogelijk meerdere onderliggende documenten
-    ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema. 
+    ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
     if not tfidfModel or not classificatieModellen:
         return ("Geen modellen geladen, roep reload aan?", 500)
 
@@ -105,14 +105,14 @@ def classificeer():
         data[i]["tekst"] = preprocess(data[i]["tekst"])
         data[i]["matrix"] = tfidfModel.transform([data[i]["tekst"]])
     data = addLabels(data)
-    return jsonify(data) 
+    return jsonify(data)
 
 @app.route("/feedback", methods=['POST'])
 def geefFeedback():
     ### INPUT: Een dict met een ID van een document en per thema een -1 of 1
-    ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema. 
+    ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
     data = request.get_json(force=True)
-    item = Feedback.query.get(data["id"]) 
+    item = Feedback.query.get(data["id"])
     if item: # Controleer of het document al in de database staat, als dat zo is, update dan de informatie
         item.bestuurOndersteuning += data["bestuurOndersteuning"]
         item.veiligheid += data["veiligheid"]
@@ -144,12 +144,12 @@ def geefFeedback():
 @app.route("/reload", methods=['GET'])
 def reload():
     ### INPUT: Niets
-    ### OUTPUT: Een Overzicht van de F1-scores per thema van de nieuw gemaakte modellen 
+    ### OUTPUT: Een Overzicht van de F1-scores per thema van de nieuw gemaakte modellen
     if not os.path.exists("models/latest/tfidf.pickle"):
         return jsonify("models do not yet exist, run een hertrain?",501)
 
     # Inladen van modellen die nodig zijn
-    tfidfModelTemp = pickle.load(open("models/latest/tfidf.pickle", "rb")) 
+    tfidfModelTemp = pickle.load(open("models/latest/tfidf.pickle", "rb"))
 
     # Er zijn 9 aparte modellen voor de veschillende thema's. Dit stuk laadt deze modellen in en zet ze in een lijst zodat je erover heen kan loopen.
     classificatieModellenTemp = []

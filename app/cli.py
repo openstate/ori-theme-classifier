@@ -1,9 +1,5 @@
-from app import app, db
-from app.models import Feedback
-from datetime import datetime
+from app import app
 import click
-import csv
-import re
 
 
 # OTC

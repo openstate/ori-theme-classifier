@@ -1,4 +1,4 @@
-from app import app, db
+from app import db
 
 
 class Feedback(db.Model):

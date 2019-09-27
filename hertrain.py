@@ -1,33 +1,21 @@
-import csv
 import os
-import sys
-import time
-import subprocess
-
-# Inladen van libraries
 import pickle
-import pandas as pd
-import json
-import numpy as np
-import re
-import requests
-import time
 import random
-from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import f1_score
-from stop_words import get_stop_words
+import re
+import shutil  # needed because symlinks don't work on windows
 from datetime import datetime
-from nltk.stem.snowball import SnowballStemmer
 from random import shuffle
 
-import shutil # needed because symlinks don't work on windows
+import pandas as pd
+import requests
+from nltk.stem.snowball import SnowballStemmer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score
+from stop_words import get_stop_words
 
-from app import app, db
 from app.models import Feedback
 
-from os import listdir
-from os.path import isfile, join
 
 def preprocess(text):
     # INPUT: een string vanuit de API, vaak met html-tags, stopwoorden etc.

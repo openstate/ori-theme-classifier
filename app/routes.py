@@ -1,38 +1,26 @@
-import csv
-import os
-import sys
-import time
-import subprocess
-
-# Inladen van libraries
-import pickle
-import pandas as pd
 import json
-import numpy as np
+import os
+import pickle
 import re
-import requests
-import time
-import random
-from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import f1_score
-from stop_words import get_stop_words
-from nltk.stem.snowball import SnowballStemmer
 
-from flask import (
-    request, redirect, url_for, flash, Markup, jsonify
-)
+from flask import request, jsonify
+from nltk.stem.snowball import SnowballStemmer
+from stop_words import get_stop_words
 
 from app import app, db
 from app.models import Feedback
 
-from datetime import datetime
-
-from os import listdir
-from os.path import isfile, join
-
-
-modelBestanden = ["bestuurOndersteuning","veiligheid","verkeerVervoerWaterstaat","economie","onderwijs","sportCultuurRecreatie","sociaalDomein","volksgezondheidMilieu","volkshuisvestingRuimtelijkeOrdening"]
+modelBestanden = [
+    "bestuurOndersteuning",
+    "veiligheid",
+    "verkeerVervoerWaterstaat",
+    "economie",
+    "onderwijs",
+    "sportCultuurRecreatie",
+    "sociaalDomein",
+    "volksgezondheidMilieu",
+    "volkshuisvestingRuimtelijkeOrdening"
+]
 
 # Inladen van modellen die nodig zijn
 if os.path.exists("models/latest/tfidf.pickle"):
@@ -50,9 +38,12 @@ if os.path.exists(labels_path):
     with open(labels_path, 'r') as in_file:
         classificatieLabels = json.load(in_file)
 
+
 def preprocess(text):
-    # INPUT: een string vanuit de API, vaak met html-tags, stopwoorden etc.
-    # OUTPUT: een string met onnozele en nietszeggende woorden verwijdert
+    """
+    INPUT: een string vanuit de API, vaak met html-tags, stopwoorden etc.
+    OUTPUT: een string met onnozele en nietszeggende woorden verwijdert
+    """
     text = text.lower()
     text = re.sub("<\w*>", '', text)
     text = re.sub("<\w*\s\/>", '', text)
@@ -67,9 +58,12 @@ def preprocess(text):
     text = stemmer.stem(text)
     return text
 
+
 def getUnderlyingDocs(data):
-    ### INPUT: data, JSON-file vanuit ORI-API zonder aangegeven thema's met daarin mogelijk onderliggende documenten;
-    ### OUTPUT: listOfDocs, per onderliggend document een dict met een ID en een string van de inhoud van het document;
+    """
+    INPUT: data, JSON-file vanuit ORI-API zonder aangegeven thema's met daarin mogelijk onderliggende documenten;
+    OUTPUT: listOfDocs, per onderliggend document een dict met een ID en een string van de inhoud van het document;
+    """
     docID = data["ori_identifier"]
     text = data["name"] # Begin van de stringtekst waar de analyse overheen gaat
     if "text" in data.keys():
@@ -82,10 +76,12 @@ def getUnderlyingDocs(data):
                 listOfDocs.append({"id":docID+"-"+doc["url"], "tekst":doc["note"]+" "+doc["description"]})
     return listOfDocs
 
-def addLabels(data):
-    ### INPUT: Lijst van dicts met IDs en teksten
-    ### OUTPUT: Dict met als key de IDs van documenten en als value de voorspelwaarde van de modellen.
 
+def addLabels(data):
+    """
+    INPUT: Lijst van dicts met IDs en teksten
+    OUTPUT: Dict met als key de IDs van documenten en als value de voorspelwaarde van de modellen.
+    """
     finalDict = {}
     for doc in data:
         newDict = {}
@@ -99,10 +95,13 @@ def addLabels(data):
         finalDict[doc["id"]] = newDict
     return finalDict
 
+
 @app.route("/classificeer", methods=['POST'])
 def classificeer():
-    ### INPUT: Dict vanuit de API met een agendapunt, met daarin mogelijk meerdere onderliggende documenten
-    ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
+    """
+    INPUT: Dict vanuit de API met een agendapunt, met daarin mogelijk meerdere onderliggende documenten
+    OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
+    """
     if not tfidfModel or not classificatieModellen:
         return ("Geen modellen geladen, roep reload aan?", 500)
 
@@ -114,10 +113,13 @@ def classificeer():
     data = addLabels(data)
     return jsonify(data)
 
+
 @app.route("/feedback", methods=['POST'])
 def geefFeedback():
-    ### INPUT: Een dict met een ID van een document en per thema een -1 of 1
-    ### OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
+    """
+    INPUT: Een dict met een ID van een document en per thema een -1 of 1
+    OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
+    """
     data = request.get_json(force=True)
     item = Feedback.query.get(data["id"])
     if item: # Controleer of het document al in de database staat, als dat zo is, update dan de informatie
@@ -145,13 +147,15 @@ def geefFeedback():
             )
         db.session.add(feedback)
     db.session.commit()
-    return ("", 204)
+    return "", 204
 
 
 @app.route("/reload", methods=['GET'])
 def reload():
-    ### INPUT: Niets
-    ### OUTPUT: Een Overzicht van de F1-scores per thema van de nieuw gemaakte modellen
+    """
+    INPUT: Niets
+    OUTPUT: Een Overzicht van de F1-scores per thema van de nieuw gemaakte modellen
+    """
     if not os.path.exists("models/latest/tfidf.pickle"):
         return jsonify("models do not yet exist, run een hertrain?",501)
 

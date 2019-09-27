@@ -9,8 +9,9 @@ services:
     restart: "no"
   app:
     build:
-      context: .
-      dockerfile: Dockerfile-app-dev
+      dockerfile: docker/Dockerfile-app-dev
+    ports:
+    - 5000:5000
     restart: "no"
   mysql:
     restart: "no"

@@ -2,23 +2,24 @@
 # Dockerfile-app)
 
 
-FROM python:3.6
+FROM frolvlad/alpine-python-machinelearning
 MAINTAINER Open State Foundation <developers@openstate.eu>
 
-RUN echo "Europe/Amsterdam" > /etc/timezone \
-    && dpkg-reconfigure -f noninteractive tzdata
-
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y locales
-RUN apt-get update && apt-get install -y gdal-bin unzip
-
-RUN sed -i -e 's/# nl_NL.UTF-8 UTF-8/nl_NL.UTF-8 UTF-8/' /etc/locale.gen \
-    && dpkg-reconfigure --frontend=noninteractive locales
+ENV FLASK_APP=app
+ENV FLASK_DEBUG=0
 
 WORKDIR /opt/otc
-RUN pip install --upgrade pip
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY docker/requirements.txt .
 
-ENV FLASK_APP=website.py
-ENV FLASK_DEBUG=1
+RUN apk add --update build-base tzdata libffi-dev python3-dev postgresql-dev \
+  && pip install --upgrade pip \
+  && pip install --no-cache-dir -r requirements.txt \
+  && cp /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime \
+  && echo "Europe/Amsterdam" > /etc/timezone \
+  && apk del build-base tzdata
+
+COPY app app
+COPY models models
+COPY config.py config.py
+
 CMD flask run --host=0.0.0.0

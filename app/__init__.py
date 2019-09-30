@@ -40,21 +40,33 @@ if not app.debug:
         mail_handler.setLevel(logging.ERROR)
         app.logger.addHandler(mail_handler)
 
-    # Log info messages and up to file
-    if not os.path.exists('logs'):
-        os.mkdir('logs')
-    file_handler = RotatingFileHandler(
-        'logs/otc.log',
-        maxBytes=1000000,
-        backupCount=10
-    )
-    file_handler.setFormatter(
-        logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s '
-            '[in %(pathname)s:%(lineno)d]'
+    if app.config.get('LOGFILE', False):
+        # Log info messages and up to file
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler(
+            'logs/otc.log',
+            maxBytes=1000000,
+            backupCount=10
         )
-    )
-    file_handler.setLevel(logging.INFO)
-    app.logger.addHandler(file_handler)
+        file_handler.setFormatter(
+            logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s '
+                '[in %(pathname)s:%(lineno)d]'
+            )
+        )
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+    else:
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(
+            logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s '
+                '[in %(pathname)s:%(lineno)d]'
+            )
+        )
+        console_handler.setLevel(logging.INFO)
+        app.logger.addHandler(console_handler)
+
     app.logger.setLevel(logging.INFO)
     app.logger.info('ORI Theme Classifier startup')

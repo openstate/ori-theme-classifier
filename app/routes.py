@@ -91,8 +91,6 @@ def addLabels(data):
             leesbaar = classificatieLabels[naam]
             if length > 75:
                 newDict[leesbaar] = clf.predict_proba(doc["matrix"])[0,0]
-            else:
-                newDict[leesbaar] = 1
         finalDict[doc["id"]] = newDict
     return finalDict
 

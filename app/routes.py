@@ -23,6 +23,7 @@ modelBestanden = [
 ]
 
 # Inladen van modellen die nodig zijn
+tfidfModel = None
 if os.path.exists("models/latest/tfidf.pickle"):
     tfidfModel = pickle.load(open("models/latest/tfidf.pickle", "rb"))
 
@@ -103,7 +104,7 @@ def classificeer():
     OUTPUT: Een JSON, met daarin een dict van alle onderliggende documenten uit de de input-dict, en per document en dict met voorspellingen van een thema.
     """
     if not tfidfModel or not classificatieModellen:
-        return ("Geen modellen geladen, roep reload aan?", 500)
+        raise Exception("Geen modellen geladen, roep reload aan?")
 
     data = request.get_json(force=True) # Dict direct uit de API als INPUT
     data = getUnderlyingDocs(data) # Haalt uit deze dict onderliggende documenten, en zet elk document als dict in een lijst met daarin het ID en de tekst
@@ -157,7 +158,7 @@ def reload():
     OUTPUT: Een Overzicht van de F1-scores per thema van de nieuw gemaakte modellen
     """
     if not os.path.exists("models/latest/tfidf.pickle"):
-        return jsonify("models do not yet exist, run een hertrain?",501)
+        raise Exception("models do not yet exist, run een hertrain?")
 
     # Inladen van modellen die nodig zijn
     tfidfModelTemp = pickle.load(open("models/latest/tfidf.pickle", "rb"))
